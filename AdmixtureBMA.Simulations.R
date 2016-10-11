@@ -1,0 +1,109 @@
+########################################
+# Simulation Code -Admixture Analysis  #
+#
+#
+########################################
+
+####### functions
+simulateData <- function() {  #Assumes that scenario parameters have already been defined
+	N <- N.controls+N.cases
+	Y <- c(rep(1, N.cases), rep(0, N.controls))
+	Z <- ifelse(Y==1,0,1)
+	mu.Q <- Q.mean + Y*beta.Q.cases + Z*beta.Q.controls
+	Q <- rnorm(N, mean=mu.Q, sd=Q.sd)
+	mu.L <- 2*mu.Q + Y*beta.L.cases + Z*beta.L.controls
+	L <- rnorm(N, mean=mu.L, sd=L.sd)
+	d <- data.frame(Y=Y, Z=Z, Q=Q, L=L)
+	d
+}
+
+runSim <- function(sim) {
+	if((sim %% 100) == 0) { print(sim) }
+	d <- simulateData()
+	r.case <- summary(lm(Q~1+offset(L/2), subset=Y==1, data=d))$coef[1,]
+	r.casecontrol <- summary(glm(Y ~ Q + L, family="binomial", data=d))$coef[3,]
+	r.control <- summary(lm(Q~1+offset(L/2), subset=Z==1, data=d))$coef[1,]
+	#r.casecontrol.lin <- summary(lm(Q ~ 1 + offset((as.numeric(L)/2)) + Y, data=d))$coef[2,] # case-control
+	r.BMA <- runBMA.Admixture(d)
+	r <- list(r.case=r.case, r.casecontrol=r.casecontrol, r.control=r.control, r.BMA=r.BMA)
+	r
+}
+
+runBMA.Admixture <- function(d, pmw=c(1,1)) {
+	numModels <- 2
+	reg <- as.list(rep(0, numModels))
+	reg[[1]] <- lm(Q ~ -1 + offset((as.numeric(L)/2)) + Y, data=d) # Case
+	reg[[2]] <- lm(Q ~ 1 + offset((as.numeric(L)/2)) + Y, data=d) # case-control
+	ll <- unlist(lapply(reg, AIC))
+	pmw <- pmw/sum(pmw)
+	fitness <- ll-log(pmw)
+	PrMGivenD <- exp(-fitness+min(fitness))/sum(exp(-fitness+min(fitness)))
+	betas <- unlist(lapply(reg, FUN=function(r) { summary(r)$coef["Y","Estimate"] }))
+	betas.se <- unlist(lapply(reg, FUN=function(r) { summary(r)$coef["Y","Std. Error"] }))
+	post.beta <- sum(betas*PrMGivenD)
+	post.se <- sqrt(sum(((betas.se^2)+(betas^2))*PrMGivenD) - (post.beta^2))
+	z.score <- post.beta/post.se
+	p.value <- 2*pnorm(-abs(z.score))
+	r <- c(post.beta, post.se, z.score, p.value)
+	r
+}
+
+	
+
+# Simulation Parameters
+numSims <- 100	
+N.cases <- 3000
+N.controls <- 3000
+Q.mean <- .8
+Q.sd <- 0.136
+L.sd <- 0.6
+#beta.Q.cases <- 0.0
+#beta.Q.controls <- 0.0
+#beta.L.cases <- 0.03
+#beta.L.controls <- 0.0
+
+beta.Q.cases.list <- seq(from=0, to=0, by=.04)
+beta.Q.controls.list <- seq(from=0, to=0, by=.04)
+beta.L.cases.list <- seq(from=-0.04, to=0.04, by=.01)
+beta.L.controls.list <- seq(from=-0.04, to=0.04, by=.01)
+
+#beta.Q.cases.list <- c(0.0)
+#beta.Q.controls.list <- c(0.0)
+#beta.L.cases.list <- c(0.0, 0.04)
+#beta.L.controls.list <- c(0.0, 0.02, 0.04)
+print(paste("Total Number of Scenarios:", length(beta.Q.cases.list)*length(beta.Q.controls.list)*length(beta.L.cases.list)*length(beta.L.controls.list)))
+OverallResults <- {}
+scenarioNum <- 1
+for(beta.Q.cases in beta.Q.cases.list) {
+	for(beta.Q.controls in beta.Q.controls.list) {
+		for(beta.L.cases in beta.L.cases.list) {
+			for(beta.L.controls in beta.L.controls.list) {
+				print(paste("Scenario:", scenarioNum,
+							"beta.Q.cases:", beta.Q.cases, 
+							"beta.Q.controls:", beta.Q.controls,
+							"beta.L.cases:", beta.L.cases,
+							"beta.L.controls:", beta.L.controls))
+				system.time(results <- lapply(1:numSims, runSim))
+				r.case <- matrix(unlist(lapply(results, FUN=function(v) { v$r.case })), 4, numSims)
+				r.casecontrol <- matrix(unlist(lapply(results, FUN=function(v) { v$r.casecontrol })), 4, numSims)
+				r.BMA <- matrix(unlist(lapply(results, FUN=function(v) { v$r.BMA })), 4, numSims)
+				r.control <- matrix(unlist(lapply(results, FUN=function(v) { v$r.control })), 4, numSims)
+				OverallResults <- rbind(OverallResults, 
+							c(beta.Q.cases, beta.Q.controls, beta.L.cases, beta.L.controls,
+							mean(r.case[1,]), mean(r.case[2,]), sum(r.case[4,]<0.05)/numSims,
+							mean(r.casecontrol[1,]), mean(r.casecontrol[2,]), sum(r.casecontrol[4,]<0.05)/numSims,
+							mean(r.control[1,]), mean(r.control[2,]), sum(r.control[4,]<0.05)/numSims,
+							mean(r.BMA[1,]), mean(r.BMA[2,]), sum(r.BMA[4,]<0.05)/numSims))
+				scenarioNum <- scenarioNum + 1
+			}	
+		}
+	}	
+}
+OverallResults <- as.data.frame(OverallResults)
+names(OverallResults) <- c("beta.Q.cases", "beta.Q.controls", "beta.L.cases", "beta.L.controls",
+								"r.case.beta", "r.case.se", "r.case.power",
+								"r.casecontrol.beta", "r.casecontrol.se", "r.casecontrol.power",
+								"r.control.beta", "r.control.se", "r.control.power",
+								"r.BMA.beta", "r.BMA.se", "r.BMA.power")
+write.table(OverallResults, file="BMA.Admixture.Results.txt", quote=F, row.names=F, sep="\t")
+
