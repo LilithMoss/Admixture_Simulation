@@ -7,12 +7,12 @@
 ####### functions
 simulateData <- function() {  #Assumes that scenario parameters have already been defined
 	N <- N.controls+N.cases
-	Y <- c(rep(1, N.cases), rep(0, N.controls))
-	Z <- ifelse(Y==1,0,1)
+	Y <- c(rep(1, N.cases), rep(0, N.controls)) #Case status 1 = Case
+	Z <- ifelse(Y==1,0,1) #Control status; 1 = Control
 	mu.Q <- Q.mean + Y*beta.Q.cases + Z*beta.Q.controls
-	Q <- rnorm(N, mean=mu.Q, sd=Q.sd)
+	Q <- rnorm(N, mean=mu.Q, sd=Q.sd) #Global Ancestry
 	mu.L <- 2*mu.Q + Y*beta.L.cases + Z*beta.L.controls
-	L <- rnorm(N, mean=mu.L, sd=L.sd)
+	L <- rnorm(N, mean=mu.L, sd=L.sd) #Local Ancestry
 	d <- data.frame(Y=Y, Z=Z, Q=Q, L=L)
 	d
 }
@@ -20,10 +20,29 @@ simulateData <- function() {  #Assumes that scenario parameters have already bee
 runSim <- function(sim) {
 	if((sim %% 100) == 0) { print(sim) }
 	d <- simulateData()
+	#r.case tests the mean of the difference in global and local
+	#ancestry in cases only to see if this difference is significanly
+	#different from zero.
+	#Takes out intercept (that's all there is)
 	r.case <- summary(lm(Q~1+offset(L/2), subset=Y==1, data=d))$coef[1,]
+	
+	#r.casecontrol tests the effect of Local ancestry on case status
+	#adjusted for global ancestry
+	#Takes out L (out of intercept, Q, L)
 	r.casecontrol <- summary(glm(Y ~ Q + L, family="binomial", data=d))$coef[3,]
+
+	#r.control tests the mean of the difference in global and local
+	#ancestry in controls only to see if this difference is significanly
+	#different from zero. Exactly like the case only except with controls
+	#Takes out intercept (that's all there is) 
 	r.control <- summary(lm(Q~1+offset(L/2), subset=Z==1, data=d))$coef[1,]
+	
+	#r.casecontrol.lin tests the effect of case status on the difference in 
+	#local and global ancestry. 
+	#Takes out Y (case-status)
 	#r.casecontrol.lin <- summary(lm(Q ~ 1 + offset((as.numeric(L)/2)) + Y, data=d))$coef[2,] # case-control
+	
+	#r.BMA
 	r.BMA <- runBMA.Admixture(d)
 	r <- list(r.case=r.case, r.casecontrol=r.casecontrol, r.control=r.control, r.BMA=r.BMA)
 	r
@@ -32,7 +51,7 @@ runSim <- function(sim) {
 runBMA.Admixture <- function(d, pmw=c(1,1)) {
 	numModels <- 2
 	reg <- as.list(rep(0, numModels))
-	reg[[1]] <- lm(Q ~ -1 + offset((as.numeric(L)/2)) + Y, data=d) # Case
+	reg[[1]] <- lm(Q ~ -1 + offset((as.numeric(L)/2)) + Y, data=d) # Case-only 
 	reg[[2]] <- lm(Q ~ 1 + offset((as.numeric(L)/2)) + Y, data=d) # case-control
 	ll <- unlist(lapply(reg, AIC))
 	pmw <- pmw/sum(pmw)
@@ -57,15 +76,15 @@ N.controls <- 3000
 Q.mean <- .8
 Q.sd <- 0.136
 L.sd <- 0.6
-#beta.Q.cases <- 0.0
-#beta.Q.controls <- 0.0
-#beta.L.cases <- 0.03
-#beta.L.controls <- 0.0
+beta.Q.cases <- 0.0
+beta.Q.controls <- 0.0
+beta.L.cases <- 0.03
+beta.L.controls <- 0.0
 
-beta.Q.cases.list <- seq(from=0, to=0, by=.04)
-beta.Q.controls.list <- seq(from=0, to=0, by=.04)
-beta.L.cases.list <- seq(from=-0.04, to=0.04, by=.01)
-beta.L.controls.list <- seq(from=-0.04, to=0.04, by=.01)
+# beta.Q.cases.list <- seq(from=0, to=0, by=.04)
+# beta.Q.controls.list <- seq(from=0, to=0, by=.04)
+# beta.L.cases.list <- seq(from=-0.04, to=0.04, by=.01)
+# beta.L.controls.list <- seq(from=-0.04, to=0.04, by=.01)
 
 #beta.Q.cases.list <- c(0.0)
 #beta.Q.controls.list <- c(0.0)
