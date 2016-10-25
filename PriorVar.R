@@ -25,8 +25,8 @@ npar <- rep(0, nmodel)
 prior.var <- as.list(rep(0, nmodel))
 
 model <- (1:ncol(x))[models[i, ] == 1]
-npar[i] <- length(model) + 1
-prior.var[[i]] <- array(rep(0, npar[i] * npar[i] * 
+npar[i] - length(model) + 1
+prior.va<r[[i]] <- array(rep(0, npar[i] * npar[i] * 
                               nphi), dim = c(npar[i], npar[i], nphi))
 
 for (j in (1:nphi)) prior.var[[i]][, , j] <- glim.pvar(model, 
@@ -44,12 +44,14 @@ pmw <- pmw/sum(pmw)
 #PrMGivenD <- exp(-fitness+min(fitness))/sum(exp(-fitness+min(fitness))) #This is what needs to be replaced
 n<-length(Y)
 #Specify Phi
-phi = 1
+phi = 2.85
 #Specify models
 models <- rbind(c(0,1),c(1,1))
 #Specify Prior Covariance matrices - Used the continuous definition as Y has only 2 categories - ask Dr. Conti later
-Cov_0 <- list((phi^2)*betas.se[1]*matrix(var(Q),ncol=sum(models[1,]),nrow=sum(models[1,])), #Uses sample variance of Q as prior variance (For continuous variables - not sure if this applies)
-              (phi^2)*betas.se[2]*diag(c(var(Q),var(Yc))) )
+cases <- d[d$Y==1,]
+Qcases <- cases$Q
+Cov_0 <- list((phi^2)*(betas.se[1])^2*matrix(var(Q)^-1,ncol=sum(models[1,]),nrow=sum(models[1,])), #Uses sample variance of Q as prior variance (For continuous variables - not sure if this applies)
+              (betas.se[2])^2*diag(c(var(Q),(phi^2)*var(Yc)^-1)) )
 #Invert the covariance matrix to get precision matrix
 lambda_0 <- list(solve(Cov_0[[1]]),solve(Cov_0[[2]]) )
 #Specify Design Matrix (list of design matrices)
@@ -59,10 +61,9 @@ lambda_n <- list(t(X[[1]])%*%X[[1]]+lambda_0[[1]],t(X[[2]])%*%X[[2]]+lambda_0[[2
 #Specify prior mean vector for Betas
 mu_0 <- list(matrix(0),matrix(c(reg[[2]]$coefficients["(Intercept)"],0) ))
 #Specify posterior mean vector for betas
-mu_n <- list( solve(t(X[[1]])%*%X[[1]]+lambda_0[[1]]) * ( (t(X[[1]])%*%X[[1]]*betas[1]) + (lambda_0[[1]]*mu_0[[1]]) ),
+mu_n <- list( solve(t(X[[1]])%*%X[[1]]+lambda_0[[1]]) * ( (t(X[[1]])%*%X[[1]]*betas[=1]) + (lambda_0[[1]]*mu_0[[1]]) ),
               solve(t(X[[2]])%*%X[[2]]+lambda_0[[2]]) %*% ( (t(X[[2]])%*%X[[2]] %*% matrix(reg[[2]]$coefficients)) 
                                                            + (lambda_0[[2]] %*% mu_0[[2]]) ) )
-              
 #Specify Prior hyperparameters for sigma^2
 nu <- 2.58
 lambda <- 0.28
@@ -89,7 +90,19 @@ p.value <- 2*pnorm(-abs(z.score))
 r <- c(post.beta, post.se, z.score, p.value)
 r
 
-
+#Old way
+ll <- unlist(lapply(reg, AIC))
+pmw <- pmw/sum(pmw)
+fitness <- ll-log(pmw)
+PrMGivenD <- exp(-fitness+min(fitness))/sum(exp(-fitness+min(fitness)))
+betas <- unlist(lapply(reg, FUN=function(r) { summary(r)$coef["Y","Estimate"] }))
+betas.se <- unlist(lapply(reg, FUN=function(r) { summary(r)$coef["Y","Std. Error"] }))
+post.beta <- sum(betas*PrMGivenD)
+post.se <- sqrt(sum(((betas.se^2)+(betas^2))*PrMGivenD) - (post.beta^2))
+z.score <- post.beta/post.se
+p.value <- 2*pnorm(-abs(z.score))
+r <- c(post.beta, post.se, z.score, p.value)
+r
 
 
 
