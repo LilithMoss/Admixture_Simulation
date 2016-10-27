@@ -17,6 +17,20 @@ simulateData <- function() {  #Assumes that scenario parameters have already bee
 	d
 }
 
+# Simulation Parameters
+numSims <- 100	
+# N.cases <- 3000
+# N.controls <- 3000
+N.cases <- 100
+N.controls <- 100
+Q.mean <- .8
+Q.sd <- 0.136
+L.sd <- 0.6
+beta.Q.cases <- 0.0
+beta.Q.controls <- 0.0
+beta.L.cases <- 0.03
+beta.L.controls <- 0.0
+
 runSim <- function(sim) {
 	if((sim %% 100) == 0) { print(sim) }
 	d <- simulateData()
@@ -51,8 +65,6 @@ runSim <- function(sim) {
 #############################################
 # BMA for admixture is combining 2 models
 # Model 1: 
-
-
 runBMA.Admixture <- function(d, pmw=c(1,1)) {
 	numModels <- 2
 	reg <- as.list(rep(0, numModels))
@@ -96,17 +108,7 @@ runBMA.Admixture <- function(d, pmw=c(1,1)) {
 
 	
 
-# Simulation Parameters
-numSims <- 100	
-N.cases <- 3000
-N.controls <- 3000
-Q.mean <- .8
-Q.sd <- 0.136
-L.sd <- 0.6
-beta.Q.cases <- 0.0
-beta.Q.controls <- 0.0
-beta.L.cases <- 0.03
-beta.L.controls <- 0.0
+
 
 # beta.Q.cases.list <- seq(from=0, to=0, by=.04)
 # beta.Q.controls.list <- seq(from=0, to=0, by=.04)
@@ -117,39 +119,39 @@ beta.L.controls <- 0.0
 #beta.Q.controls.list <- c(0.0)
 #beta.L.cases.list <- c(0.0, 0.04)
 #beta.L.controls.list <- c(0.0, 0.02, 0.04)
-print(paste("Total Number of Scenarios:", length(beta.Q.cases.list)*length(beta.Q.controls.list)*length(beta.L.cases.list)*length(beta.L.controls.list)))
-OverallResults <- {}
-scenarioNum <- 1
-for(beta.Q.cases in beta.Q.cases.list) {
-	for(beta.Q.controls in beta.Q.controls.list) {
-		for(beta.L.cases in beta.L.cases.list) {
-			for(beta.L.controls in beta.L.controls.list) {
-				print(paste("Scenario:", scenarioNum,
-							"beta.Q.cases:", beta.Q.cases, 
-							"beta.Q.controls:", beta.Q.controls,
-							"beta.L.cases:", beta.L.cases,
-							"beta.L.controls:", beta.L.controls))
-				system.time(results <- lapply(1:numSims, runSim))
-				r.case <- matrix(unlist(lapply(results, FUN=function(v) { v$r.case })), 4, numSims)
-				r.casecontrol <- matrix(unlist(lapply(results, FUN=function(v) { v$r.casecontrol })), 4, numSims)
-				r.BMA <- matrix(unlist(lapply(results, FUN=function(v) { v$r.BMA })), 4, numSims)
-				r.control <- matrix(unlist(lapply(results, FUN=function(v) { v$r.control })), 4, numSims)
-				OverallResults <- rbind(OverallResults, 
-							c(beta.Q.cases, beta.Q.controls, beta.L.cases, beta.L.controls,
-							mean(r.case[1,]), mean(r.case[2,]), sum(r.case[4,]<0.05)/numSims,
-							mean(r.casecontrol[1,]), mean(r.casecontrol[2,]), sum(r.casecontrol[4,]<0.05)/numSims,
-							mean(r.control[1,]), mean(r.control[2,]), sum(r.control[4,]<0.05)/numSims,
-							mean(r.BMA[1,]), mean(r.BMA[2,]), sum(r.BMA[4,]<0.05)/numSims))
-				scenarioNum <- scenarioNum + 1
-			}	
-		}
-	}	
-}
-OverallResults <- as.data.frame(OverallResults)
-names(OverallResults) <- c("beta.Q.cases", "beta.Q.controls", "beta.L.cases", "beta.L.controls",
-								"r.case.beta", "r.case.se", "r.case.power",
-								"r.casecontrol.beta", "r.casecontrol.se", "r.casecontrol.power",
-								"r.control.beta", "r.control.se", "r.control.power",
-								"r.BMA.beta", "r.BMA.se", "r.BMA.power")
-write.table(OverallResults, file="BMA.Admixture.Results.txt", quote=F, row.names=F, sep="\t")
+# print(paste("Total Number of Scenarios:", length(beta.Q.cases.list)*length(beta.Q.controls.list)*length(beta.L.cases.list)*length(beta.L.controls.list)))
+# OverallResults <- {}
+# scenarioNum <- 1
+# for(beta.Q.cases in beta.Q.cases.list) {
+# 	for(beta.Q.controls in beta.Q.controls.list) {
+# 		for(beta.L.cases in beta.L.cases.list) {
+# 			for(beta.L.controls in beta.L.controls.list) {
+# 				print(paste("Scenario:", scenarioNum,
+# 							"beta.Q.cases:", beta.Q.cases, 
+# 							"beta.Q.controls:", beta.Q.controls,
+# 							"beta.L.cases:", beta.L.cases,
+# 							"beta.L.controls:", beta.L.controls))
+# 				system.time(results <- lapply(1:numSims, runSim))
+# 				r.case <- matrix(unlist(lapply(results, FUN=function(v) { v$r.case })), 4, numSims)
+# 				r.casecontrol <- matrix(unlist(lapply(results, FUN=function(v) { v$r.casecontrol })), 4, numSims)
+# 				r.BMA <- matrix(unlist(lapply(results, FUN=function(v) { v$r.BMA })), 4, numSims)
+# 				r.control <- matrix(unlist(lapply(results, FUN=function(v) { v$r.control })), 4, numSims)
+# 				OverallResults <- rbind(OverallResults, 
+# 							c(beta.Q.cases, beta.Q.controls, beta.L.cases, beta.L.controls,
+# 							mean(r.case[1,]), mean(r.case[2,]), sum(r.case[4,]<0.05)/numSims,
+# 							mean(r.casecontrol[1,]), mean(r.casecontrol[2,]), sum(r.casecontrol[4,]<0.05)/numSims,
+# 							mean(r.control[1,]), mean(r.control[2,]), sum(r.control[4,]<0.05)/numSims,
+# 							mean(r.BMA[1,]), mean(r.BMA[2,]), sum(r.BMA[4,]<0.05)/numSims))
+# 				scenarioNum <- scenarioNum + 1
+# 			}	
+# 		}
+# 	}	
+# }
+# OverallResults <- as.data.frame(OverallResults)
+# names(OverallResults) <- c("beta.Q.cases", "beta.Q.controls", "beta.L.cases", "beta.L.controls",
+# 								"r.case.beta", "r.case.se", "r.case.power",
+# 								"r.casecontrol.beta", "r.casecontrol.se", "r.casecontrol.power",
+# 								"r.control.beta", "r.control.se", "r.control.power",
+# 								"r.BMA.beta", "r.BMA.se", "r.BMA.power")
+# write.table(OverallResults, file="BMA.Admixture.Results.txt", quote=F, row.names=F, sep="\t")
 
