@@ -57,6 +57,14 @@ an <- a0+(n/2)
 bn <- list( b0+(1/2)*(t(Q)%*%Q + t(mu_0[[1]])%*%lambda_0[[1]]%*%mu_0[[1]] - t(mu_n[[1]])%*%lambda_n[[1]]%*%mu_n[[1]]),
             b0+(1/2)*(t(Q)%*%Q + t(mu_0[[2]])%*%lambda_0[[2]]%*%mu_0[[2]] - t(mu_n[[2]])%*%lambda_n[[2]]%*%mu_n[[2]]) )
 
+#Numerical calculation method for large gamma function in posterior
+exp(lgamma((nu+n)/2)-((n/2)*log(pi)) )
+
+lgamma((nu+n)/2)-((n/2)*log(pi))
+
+
+
+
 #Calculate Marginal Likelihood - OLD
 PrDGivenM1 <- 1/(2*pi)^(n/2)*sqrt(det(lambda_0[[1]])/det(lambda_n[[1]]))*(b0^a0)/(bn[[1]]^an)*(gamma(an)/gamma(a0))  
 PrDGivenM2 <- 1/(2*pi)^(n/2)*sqrt(det(lambda_0[[2]])/det(lambda_n[[2]]))*(b0^a0)/(bn[[2]]^an)*(gamma(an)/gamma(a0))  
