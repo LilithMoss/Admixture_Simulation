@@ -1,5 +1,7 @@
 library(BMA)
+library(Rmpfr)
 source("AdmixtureBMA.Simulations_Annotated.R")
+
 set.seed(2016)
 d <- simulateData()
 
@@ -19,7 +21,7 @@ pmw <- pmw/sum(pmw)
 #PrMGivenD <- exp(-fitness+min(fitness))/sum(exp(-fitness+min(fitness))) #This is what needs to be replaced
 n<-length(Y)
 #Specify Phi
-phi = 2.85
+phi = 1#2.85
 #Specify models
 models <- rbind(c(0,1),c(1,1))
 
@@ -34,16 +36,29 @@ betas.se <- unlist(lapply(reg, FUN=function(r) { summary(r)$coef["Y","Std. Error
 #Specify Prior Covariance matrices - Used the continuous definition as Y has only 2 categories - ask Dr. Conti later
 cases <- d[d$Y==1,]
 Qcases <- cases$Q
-Cov_0 <- list((phi^2)*(betas.se[1])^2*matrix(var(Q)^-1,ncol=sum(models[1,]),nrow=sum(models[1,])), #Uses sample variance of Q as prior variance (For continuous variables - not sure if this applies)
-              (betas.se[2])^2*diag(c(var(Q),(phi^2)*var(Yc)^-1)) )
+sigma1 <- (summary(reg[[1]])$sigma)^2
+sigma2 <- (summary(reg[[2]])$sigma)^2
+# Cov_0 <- list((phi^2)*(betas.se[1])^2*matrix(var(Q)^-1,ncol=sum(models[1,]),nrow=sum(models[1,])), #Uses sample variance of Q as prior variance (For continuous variables - not sure if this applies)
+#               (betas.se[2])^2*diag(c(var(Q),(phi^2)*var(Yc)^-1)) )
+prior.var <- c((0.05)^2,(0.05)^2)
+prior.var.alpha <- (0.01)^2
+cov_1 <- sigma1*matrix((phi^2)*(1/prior.var[1]))
+cov_2.1 <- var(Q-L/2)
+cov_2.2 <- ((phi^2)*(1/prior.var[2]))
+cov_2 <- sigma2*matrix(c(cov_2.1,0,0,cov_2.2),byrow=T,ncol=2)
+Cov_0 <- list(cov_1,cov_2)
+  
 #Invert the covariance matrix to get precision matrix
 lambda_0 <- list(solve(Cov_0[[1]]),solve(Cov_0[[2]]) )
 #Specify Design Matrix (list of design matrices)
-X <- list( matrix(Yc),matrix(c(rep(1,length(Yc)),Yc),ncol=2) )
+# X <- list( matrix(Yc),matrix(c(rep(1,length(Yc)),Yc),ncol=2) )
+X <- list( matrix(Y),matrix(c(rep(1,length(Yc)),Y),ncol=2) )
 #Specify Posterior Precision Matrix
 lambda_n <- list(t(X[[1]])%*%X[[1]]+lambda_0[[1]],t(X[[2]])%*%X[[2]]+lambda_0[[2]])
 #Specify prior mean vector for Betas
-mu_0 <- list(matrix(0),matrix(c(reg[[2]]$coefficients["(Intercept)"],0) ))
+# mu_0 <- list(matrix(0),matrix(c(reg[[2]]$coefficients["(Intercept)"],0) ))
+mu_0 <- list(matrix(0),matrix(c(0,0)))
+
 #Specify posterior mean vector for betas
 mu_n <- list( solve(t(X[[1]])%*%X[[1]]+lambda_0[[1]]) * ( (t(X[[1]])%*%X[[1]]*betas[1]) + (lambda_0[[1]]*mu_0[[1]]) ),
               solve(t(X[[2]])%*%X[[2]]+lambda_0[[2]]) %*% ( (t(X[[2]])%*%X[[2]] %*% matrix(reg[[2]]$coefficients)) + (lambda_0[[2]] %*% mu_0[[2]]) ) )
@@ -57,13 +72,26 @@ an <- a0+(n/2)
 bn <- list( b0+(1/2)*(t(Q)%*%Q + t(mu_0[[1]])%*%lambda_0[[1]]%*%mu_0[[1]] - t(mu_n[[1]])%*%lambda_n[[1]]%*%mu_n[[1]]),
             b0+(1/2)*(t(Q)%*%Q + t(mu_0[[2]])%*%lambda_0[[2]]%*%mu_0[[2]] - t(mu_n[[2]])%*%lambda_n[[2]]%*%mu_n[[2]]) )
 
-#Numerical calculation method for large gamma function in posterior
-exp(lgamma((nu+n)/2)-((n/2)*log(pi)) )
+#This is the code that works
+mpfr(exp(750),128)
+gamma(as(3000,"mpfr"))
 
-lgamma((nu+n)/2)-((n/2)*log(pi))
+#Calculate large values using multiple precision package (Rmpfr)
+lterm1 <- as((2*pi)^(n/2),"mpfr")
+mpfr(pi^n,1000)
+a <- pi^2
+Const("pi",prec=260)
+mpfr(pi^n,prec=260)
+pi^619
+mpfr(pi^619,128)
+as(pi^620,"mpfr")
 
-
-
+lterm1 <- exp(as(((-n/2)*log(2*pi)),"mpfr")) #1/(2pi)^(n/2)
+lterm2 <- list( exp(as(an*log(bn[[1]]),"mpfr")), exp(as(an*log(bn[[2]]),"mpfr")) )
+lterm3 <- gamma(as(an,"mpfr"))
+  
+PrDGivenM1 <-lterm1*sqrt(det(lambda_0[[1]])/det(lambda_n[[1]]))*((b0^a0)/lterm2[[1]])*(lterm3/gamma(a0)) 
+PrDGivenM2 <-lterm1*sqrt(det(lambda_0[[2]])/det(lambda_n[[2]]))*((b0^a0)/lterm2[[2]])*(lterm3/gamma(a0)) 
 
 #Calculate Marginal Likelihood - OLD
 PrDGivenM1 <- 1/(2*pi)^(n/2)*sqrt(det(lambda_0[[1]])/det(lambda_n[[1]]))*(b0^a0)/(bn[[1]]^an)*(gamma(an)/gamma(a0))  
