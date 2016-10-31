@@ -19,10 +19,10 @@ simulateData <- function() {  #Assumes that scenario parameters have already bee
 
 # Simulation Parameters
 numSims <- 100	
-# N.cases <- 3000
-# N.controls <- 3000
-N.cases <- 100
-N.controls <- 100
+N.cases <- 3000
+N.controls <- 3000
+# N.cases <- 100
+# N.controls <- 100
 Q.mean <- .8
 Q.sd <- 0.136
 L.sd <- 0.6

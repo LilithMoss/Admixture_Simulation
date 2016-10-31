@@ -73,51 +73,36 @@ bn <- list( b0+(1/2)*(t(Q)%*%Q + t(mu_0[[1]])%*%lambda_0[[1]]%*%mu_0[[1]] - t(mu
             b0+(1/2)*(t(Q)%*%Q + t(mu_0[[2]])%*%lambda_0[[2]]%*%mu_0[[2]] - t(mu_n[[2]])%*%lambda_n[[2]]%*%mu_n[[2]]) )
 
 #This is the code that works
-mpfr(exp(750),128)
-gamma(as(3000,"mpfr"))
+# mpfr(exp(750),128)
+# gamma(as(3000,"mpfr"))
 
 #Calculate large values using multiple precision package (Rmpfr)
-lterm1 <- as((2*pi)^(n/2),"mpfr")
-mpfr(pi^n,1000)
-a <- pi^2
-Const("pi",prec=260)
-mpfr(pi^n,prec=260)
-pi^619
-mpfr(pi^619,128)
-as(pi^620,"mpfr")
-
 lterm1 <- exp(as(((-n/2)*log(2*pi)),"mpfr")) #1/(2pi)^(n/2)
 lterm2 <- list( exp(as(an*log(bn[[1]]),"mpfr")), exp(as(an*log(bn[[2]]),"mpfr")) )
 lterm3 <- gamma(as(an,"mpfr"))
-  
+
+#Calculate Marginal Likelihood
 PrDGivenM1 <-lterm1*sqrt(det(lambda_0[[1]])/det(lambda_n[[1]]))*((b0^a0)/lterm2[[1]])*(lterm3/gamma(a0)) 
 PrDGivenM2 <-lterm1*sqrt(det(lambda_0[[2]])/det(lambda_n[[2]]))*((b0^a0)/lterm2[[2]])*(lterm3/gamma(a0)) 
-
-#Calculate Marginal Likelihood - OLD
-PrDGivenM1 <- 1/(2*pi)^(n/2)*sqrt(det(lambda_0[[1]])/det(lambda_n[[1]]))*(b0^a0)/(bn[[1]]^an)*(gamma(an)/gamma(a0))  
-PrDGivenM2 <- 1/(2*pi)^(n/2)*sqrt(det(lambda_0[[2]])/det(lambda_n[[2]]))*(b0^a0)/(bn[[2]]^an)*(gamma(an)/gamma(a0))  
 PrDGivenM <- c(PrDGivenM1,PrDGivenM2)
+
+# #Calculate Marginal Likelihood - OLD
+# PrDGivenM1 <- 1/(2*pi)^(n/2)*sqrt(det(lambda_0[[1]])/det(lambda_n[[1]]))*(b0^a0)/(bn[[1]]^an)*(gamma(an)/gamma(a0))  
+# PrDGivenM2 <- 1/(2*pi)^(n/2)*sqrt(det(lambda_0[[2]])/det(lambda_n[[2]]))*(b0^a0)/(bn[[2]]^an)*(gamma(an)/gamma(a0))  
+# PrDGivenM <- c(PrDGivenM1,PrDGivenM2)
+
 #Calculate Posterior Model Probabilities
-PrMGivenD <- PrDGivenM*pmw/sum( PrDGivenM*pmw )
-
-#Calculate Marginal Likelihood - New
-PrDGivenM1 <- 1/(2*pi)^(n/2)*sqrt(det(lambda_0[[1]])/det(lambda_n[[1]]))*((b0^a0)/(bn[[1]]^an))*(exp(2.1026e+4)/gamma(a0))  
-PrDGivenM2 <- 1/(2*pi)^(n/2)*sqrt(det(lambda_0[[2]])/det(lambda_n[[2]]))*((b0^a0)/(bn[[2]]^an))*(exp(2.1026e+4)/gamma(a0))  
-PrDGivenM <- c(PrDGivenM1,PrDGivenM2)
-
-
-
-
+PrMGivenD.new <- PrDGivenM*pmw/sum( PrDGivenM*pmw )
 
 #Keep the rest of the calculation the same
 betas <- unlist(lapply(reg, FUN=function(r) { summary(r)$coef["Y","Estimate"] }))
 betas.se <- unlist(lapply(reg, FUN=function(r) { summary(r)$coef["Y","Std. Error"] }))
-post.beta <- sum(betas*PrMGivenD)
-post.se <- sqrt(sum(((betas.se^2)+(betas^2))*PrMGivenD) - (post.beta^2))
+post.beta <- sum(betas*PrMGivenD.new)
+post.se <- sqrt(sum(((betas.se^2)+(betas^2))*PrMGivenD.new) - (post.beta^2))
 z.score <- post.beta/post.se
 p.value <- 2*pnorm(-abs(z.score))
-r <- c(post.beta, post.se, z.score, p.value)
-r
+r.new <- c(post.beta, post.se, z.score, p.value)
+r.new
 
 #Old way
 ll <- unlist(lapply(reg, AIC))
