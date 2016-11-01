@@ -85,6 +85,7 @@ run.BMA <- function(d){
   z.score <- post.beta/post.se
   p.value <- 2*pnorm(-abs(z.score))
   BMA.cf <- as.numeric( c(post.beta, post.se, z.score, p.value))
+  names(BMA.cf) <- c("post.beta", "post.se", "z.score", "p.value")
   BMA.cf
   
   #AIC WAY
@@ -98,6 +99,7 @@ run.BMA <- function(d){
   z.score.aic <- post.beta.aic/post.se.aic
   p.value.aic <- 2*pnorm(-abs(z.score.aic))
   BMA.aic <- c(post.beta.aic, post.se.aic, z.score.aic, p.value.aic)
+  names(BMA.aic) <- c("post.beta.aic", "post.se.aic", "z.score.aic", "p.value.aic")
   BMA.aic
   result <- list(BMA.cf,BMA.aic)
   return(result)
@@ -123,5 +125,7 @@ runSim <- function(sim) {
   #r <- list(r.case=r.case, r.casecontrol=r.casecontrol, r.control=r.control, r.BMA=r.BMA)
   r <- list(r.case.only,r.case.control,r.control.only,r.logistic.cc,
             r.BMA.cf,r.BMA.aic)
+  names(r) <- c("case.only","case.control","control.only",
+                "logistic.cc","BMA.cf","BMA.aic")
   r
 }

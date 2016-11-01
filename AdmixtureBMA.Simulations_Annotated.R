@@ -141,15 +141,15 @@ runBMA.Admixture <- function(d, pmw=c(1,1)) {
 
 
 
-#  beta.Q.cases.list <- seq(from=0, to=0, by=.04)
-#  beta.Q.controls.list <- seq(from=0, to=0, by=.04)
-#  beta.L.cases.list <- seq(from=-0.04, to=0.04, by=.01)
-#  beta.L.controls.list <- seq(from=-0.04, to=0.04, by=.01)
-# 
-# beta.Q.cases.list <- c(0.0)
-# beta.Q.controls.list <- c(0.0)
-# beta.L.cases.list <- c(0.0, 0.04)
-# beta.L.controls.list <- c(0.0, 0.02, 0.04)
+  # beta.Q.cases.list <- seq(from=0, to=0, by=.04)
+  # beta.Q.controls.list <- seq(from=0, to=0, by=.04)
+  # beta.L.cases.list <- seq(from=-0.04, to=0.04, by=.01)
+  # beta.L.controls.list <- seq(from=-0.04, to=0.04, by=.01)
+ 
+ beta.Q.cases.list <- c(0.0) #Q in cases
+ beta.Q.controls.list <- c(0.0) #Q in controls
+ beta.L.cases.list <- c(0.0, 0.04) #L effect in cases
+ beta.L.controls.list <- c(0.0, 0.02, 0.04) #L effect in controls
 #  print(paste("Total Number of Scenarios:", length(beta.Q.cases.list)*length(beta.Q.controls.list)*length(beta.L.cases.list)*length(beta.L.controls.list)))
 #  OverallResults <- {}
 #  scenarioNum <- 1
