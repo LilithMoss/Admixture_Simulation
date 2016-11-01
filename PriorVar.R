@@ -2,14 +2,9 @@ library(BMA)
 library(Rmpfr)
 source("AdmixtureBMA.Simulations_Annotated.R")
 
-set.seed(2016)
+#set.seed(2016)
 d <- simulateData()
 
-#Simple Simulation
-# L <- rnorm(100,1,0.5)
-# Q <- runif(100,0,1)
-# Y <- rbinom(100,1,0.2)
-# dat <- cbind(L,Q,Y)
 d$Yc <- d$Y-mean(d$Y) #Mean center the case-status variable
 Y <- d$Y
 Q <- d$Q
@@ -36,18 +31,33 @@ betas.se <- unlist(lapply(reg, FUN=function(r) { summary(r)$coef["Y","Std. Error
 #Specify Prior Covariance matrices - Used the continuous definition as Y has only 2 categories - ask Dr. Conti later
 cases <- d[d$Y==1,]
 Qcases <- cases$Q
-sigma1 <- (summary(reg[[1]])$sigma)^2
-sigma2 <- (summary(reg[[2]])$sigma)^2
+# sigma1 <- (summary(reg[[1]])$sigma)^2 #Estimated Variance of the standard Error
+# sigma2 <- (summary(reg[[2]])$sigma)^2 #Estimated Variance of the standard Error
 # Cov_0 <- list((phi^2)*(betas.se[1])^2*matrix(var(Q)^-1,ncol=sum(models[1,]),nrow=sum(models[1,])), #Uses sample variance of Q as prior variance (For continuous variables - not sure if this applies)
 #               (betas.se[2])^2*diag(c(var(Q),(phi^2)*var(Yc)^-1)) )
+
+#Get random estimated variance of standard error
+rsigma1 <- (nu)*(lambda)/rchisq(1,nu)
+rsigma2 <- (nu)*(lambda)/rchisq(1,nu)
+
+#Prior variance of betas based on seeing maximum a 0.05 difference. 
+sigma1 <- (0.05/1.96)
+sigma2 <- (0.05/1.96)
+
 prior.var <- c((0.05)^2,(0.05)^2)
-prior.var.alpha <- (0.01)^2
+# prior.var.alpha <- (0.01)^2
 cov_1 <- sigma1*matrix((phi^2)*(1/prior.var[1]))
-cov_2.1 <- var(Q-L/2)
+cov_2.1 <- var(Q-L/2) #Using the data
 cov_2.2 <- ((phi^2)*(1/prior.var[2]))
 cov_2 <- sigma2*matrix(c(cov_2.1,0,0,cov_2.2),byrow=T,ncol=2)
 Cov_0 <- list(cov_1,cov_2)
-  
+
+#Covariance matrix without using any data
+cov1 <- matrix(sigma1)
+cov2 <- matrix(c(sigma1,0,0,sigma2),ncol=2,byrow=T)
+Cov_0 <- list(cov1,cov2)
+
+
 #Invert the covariance matrix to get precision matrix
 lambda_0 <- list(solve(Cov_0[[1]]),solve(Cov_0[[2]]) )
 #Specify Design Matrix (list of design matrices)
@@ -72,10 +82,6 @@ an <- a0+(n/2)
 bn <- list( b0+(1/2)*(t(Q)%*%Q + t(mu_0[[1]])%*%lambda_0[[1]]%*%mu_0[[1]] - t(mu_n[[1]])%*%lambda_n[[1]]%*%mu_n[[1]]),
             b0+(1/2)*(t(Q)%*%Q + t(mu_0[[2]])%*%lambda_0[[2]]%*%mu_0[[2]] - t(mu_n[[2]])%*%lambda_n[[2]]%*%mu_n[[2]]) )
 
-#This is the code that works
-# mpfr(exp(750),128)
-# gamma(as(3000,"mpfr"))
-
 #Calculate large values using multiple precision package (Rmpfr)
 lterm1 <- exp(as(((-n/2)*log(2*pi)),"mpfr")) #1/(2pi)^(n/2)
 lterm2 <- list( exp(as(an*log(bn[[1]]),"mpfr")), exp(as(an*log(bn[[2]]),"mpfr")) )
@@ -85,11 +91,6 @@ lterm3 <- gamma(as(an,"mpfr"))
 PrDGivenM1 <-lterm1*sqrt(det(lambda_0[[1]])/det(lambda_n[[1]]))*((b0^a0)/lterm2[[1]])*(lterm3/gamma(a0)) 
 PrDGivenM2 <-lterm1*sqrt(det(lambda_0[[2]])/det(lambda_n[[2]]))*((b0^a0)/lterm2[[2]])*(lterm3/gamma(a0)) 
 PrDGivenM <- c(PrDGivenM1,PrDGivenM2)
-
-# #Calculate Marginal Likelihood - OLD
-# PrDGivenM1 <- 1/(2*pi)^(n/2)*sqrt(det(lambda_0[[1]])/det(lambda_n[[1]]))*(b0^a0)/(bn[[1]]^an)*(gamma(an)/gamma(a0))  
-# PrDGivenM2 <- 1/(2*pi)^(n/2)*sqrt(det(lambda_0[[2]])/det(lambda_n[[2]]))*(b0^a0)/(bn[[2]]^an)*(gamma(an)/gamma(a0))  
-# PrDGivenM <- c(PrDGivenM1,PrDGivenM2)
 
 #Calculate Posterior Model Probabilities
 PrMGivenD.new <- PrDGivenM*pmw/sum( PrDGivenM*pmw )
@@ -117,44 +118,3 @@ z.score <- post.beta/post.se
 p.value <- 2*pnorm(-abs(z.score))
 r <- c(post.beta, post.se, z.score, p.value)
 r
-
-#Glib to check -- Don't do this - it's too much work.
-r.co <- summary(lm(Q~1+offset(L/2), subset=Y==1, data=d))
-r.cc <- summary(lm(Q~1+offset(L/2)+Y, data=d))
-d$ex <- ifelse(d$Y==0,NA,1)
-x <- cbind(d$Y,d$ex) #Design Matrix
-y <- (d$Q-d$L/2)   #Outcome
-models <- rbind(c(0),c(1))
-n=nrow(d)
-r.glib <- glib(x[,1],y,n, error="gaussian", link="identity",
-          models=models, glimvar=TRUE,
-          output.priorvar=TRUE, output.postvar=TRUE)
-summary(glib)
-
-x <- cbind(rnorm(100,2,0.5),rnorm(100,3,0.2))
-y <- rnorm(100,10,0.5)
-n=100
-models <- rbind(c(1,0),c(1,1))
-r.glib <- glib(x,y,n, error="gaussian", link="identity",
-               models=models, glimvar=TRUE, nu=2.58, phi=2.85,
-               output.priorvar=TRUE, output.postvar=TRUE)
-summary(r.glib)
-#calculate what the posterior mean and variances would be given the glib priors
-
-
-library(forward)
-data(vaso)
-x<- vaso[,1:2]
-y<- vaso[,3]
-n<- rep(1,times=length(y))
-models<- rbind(c(0,1),c(1,1))
-glib <- glib (x,y,n, error="gaussian", link="identity",
-                     models=models, glimvar=TRUE,
-                     output.priorvar=TRUE, output.postvar=TRUE)
-summary(glib)
-
-m <- summary(lm(y~x[,1]+x[,2]))
-
-
-
-
