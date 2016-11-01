@@ -29,34 +29,27 @@ betas <- unlist(lapply(reg, FUN=function(r) { summary(r)$coef["Y","Estimate"] })
 betas.se <- unlist(lapply(reg, FUN=function(r) { summary(r)$coef["Y","Std. Error"] }))
 
 #Specify Prior Covariance matrices - Used the continuous definition as Y has only 2 categories - ask Dr. Conti later
-cases <- d[d$Y==1,]
-Qcases <- cases$Q
 # sigma1 <- (summary(reg[[1]])$sigma)^2 #Estimated Variance of the standard Error
 # sigma2 <- (summary(reg[[2]])$sigma)^2 #Estimated Variance of the standard Error
 # Cov_0 <- list((phi^2)*(betas.se[1])^2*matrix(var(Q)^-1,ncol=sum(models[1,]),nrow=sum(models[1,])), #Uses sample variance of Q as prior variance (For continuous variables - not sure if this applies)
 #               (betas.se[2])^2*diag(c(var(Q),(phi^2)*var(Yc)^-1)) )
 
-#Get random estimated variance of standard error
-rsigma1 <- (nu)*(lambda)/rchisq(1,nu)
-rsigma2 <- (nu)*(lambda)/rchisq(1,nu)
+#Covariance matrix based on data (residual standard error)
+# prior.var <- c((0.05)^2,(0.05)^2)
+# cov_1 <- sigma1*matrix((phi^2)*(1/prior.var[1]))
+# cov_2.1 <- var(Q-L/2) #Using the data
+# cov_2.2 <- ((phi^2)*(1/prior.var[2]))
+# cov_2 <- sigma2*matrix(c(cov_2.1,0,0,cov_2.2),byrow=T,ncol=2)
+# Cov_0 <- list(cov_1,cov_2)
 
 #Prior variance of betas based on seeing maximum a 0.05 difference. 
-sigma1 <- (0.05/1.96)
-sigma2 <- (0.05/1.96)
-
-prior.var <- c((0.05)^2,(0.05)^2)
-# prior.var.alpha <- (0.01)^2
-cov_1 <- sigma1*matrix((phi^2)*(1/prior.var[1]))
-cov_2.1 <- var(Q-L/2) #Using the data
-cov_2.2 <- ((phi^2)*(1/prior.var[2]))
-cov_2 <- sigma2*matrix(c(cov_2.1,0,0,cov_2.2),byrow=T,ncol=2)
-Cov_0 <- list(cov_1,cov_2)
-
+#Informed Prior
+sigma1 <- (0.05/1.96)^2
+sigma2 <- (0.05/1.96)^2
 #Covariance matrix without using any data
 cov1 <- matrix(sigma1)
 cov2 <- matrix(c(sigma1,0,0,sigma2),ncol=2,byrow=T)
 Cov_0 <- list(cov1,cov2)
-
 
 #Invert the covariance matrix to get precision matrix
 lambda_0 <- list(solve(Cov_0[[1]]),solve(Cov_0[[2]]) )
@@ -87,34 +80,42 @@ lterm1 <- exp(as(((-n/2)*log(2*pi)),"mpfr")) #1/(2pi)^(n/2)
 lterm2 <- list( exp(as(an*log(bn[[1]]),"mpfr")), exp(as(an*log(bn[[2]]),"mpfr")) )
 lterm3 <- gamma(as(an,"mpfr"))
 
+#Closed-Form WAY
 #Calculate Marginal Likelihood
 PrDGivenM1 <-lterm1*sqrt(det(lambda_0[[1]])/det(lambda_n[[1]]))*((b0^a0)/lterm2[[1]])*(lterm3/gamma(a0)) 
 PrDGivenM2 <-lterm1*sqrt(det(lambda_0[[2]])/det(lambda_n[[2]]))*((b0^a0)/lterm2[[2]])*(lterm3/gamma(a0)) 
 PrDGivenM <- c(PrDGivenM1,PrDGivenM2)
-
 #Calculate Posterior Model Probabilities
 PrMGivenD.new <- PrDGivenM*pmw/sum( PrDGivenM*pmw )
-
-#Keep the rest of the calculation the same
 betas <- unlist(lapply(reg, FUN=function(r) { summary(r)$coef["Y","Estimate"] }))
 betas.se <- unlist(lapply(reg, FUN=function(r) { summary(r)$coef["Y","Std. Error"] }))
 post.beta <- sum(betas*PrMGivenD.new)
 post.se <- sqrt(sum(((betas.se^2)+(betas^2))*PrMGivenD.new) - (post.beta^2))
 z.score <- post.beta/post.se
 p.value <- 2*pnorm(-abs(z.score))
-r.new <- c(post.beta, post.se, z.score, p.value)
-r.new
+r.cf <- c(post.beta, post.se, z.score, p.value)
+r.cf
 
-#Old way
+#AIC WAY
 ll <- unlist(lapply(reg, AIC))
-pmw <- pmw/sum(pmw)
 fitness <- ll-log(pmw)
-PrMGivenD <- exp(-fitness+min(fitness))/sum(exp(-fitness+min(fitness)))
+PrMGivenD.aic <- exp(-fitness+min(fitness))/sum(exp(-fitness+min(fitness)))
 betas <- unlist(lapply(reg, FUN=function(r) { summary(r)$coef["Y","Estimate"] }))
 betas.se <- unlist(lapply(reg, FUN=function(r) { summary(r)$coef["Y","Std. Error"] }))
-post.beta <- sum(betas*PrMGivenD)
-post.se <- sqrt(sum(((betas.se^2)+(betas^2))*PrMGivenD) - (post.beta^2))
-z.score <- post.beta/post.se
-p.value <- 2*pnorm(-abs(z.score))
-r <- c(post.beta, post.se, z.score, p.value)
-r
+post.beta.aic <- sum(betas*PrMGivenD.aic)
+post.se.aic <- sqrt(sum(((betas.se^2)+(betas^2))*PrMGivenD.aic) - (post.beta.aic^2))
+z.score.aic <- post.beta.aic/post.se.aic
+p.value.aic <- 2*pnorm(-abs(z.score.aic))
+r.aic <- c(post.beta.aic, post.se.aic, z.score.aic, p.value.aic)
+r.aic
+
+#Glib WAY (Case-control model only)
+models <- as.data.frame(1)
+X <- as.data.frame(model.matrix(as.formula(Q ~ 1 + offset((as.numeric(L)/2)) + Y))[,2])
+r.glib <- glib(X,y=QL,error="gaussian",link="identity",phi=1,
+               models=models[1],pmw=pmw[1],output.postvar=T,
+               priormean=c(0,0),priorvar=Cov_0[[2]])
+
+
+
+
