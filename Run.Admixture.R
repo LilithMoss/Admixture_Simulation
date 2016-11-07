@@ -28,7 +28,7 @@ L.sd <- 0.6
 # 4) r.logistic.cc
 # 5) r.BMA.cf
 # 6) r.BMA.aic
-#runSim(1)
+runSim(1)
 
 #Run multiple simulations and report power
 #Set number of Simulations
