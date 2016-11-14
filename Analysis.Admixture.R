@@ -84,8 +84,11 @@ run.BMA <- function(d){
   post.se <- sqrt(sum(((betas.se^2)+(betas^2))*PrMGivenD.new) - (post.beta^2))
   z.score <- post.beta/post.se
   p.value <- 2*pnorm(-abs(z.score))
-  BMA.cf <- as.numeric( c(post.beta, post.se, z.score, p.value))
-  names(BMA.cf) <- c("post.beta", "post.se", "z.score", "p.value")
+  #BMA.cf <- as.numeric( c(post.beta, post.se, z.score, p.value))
+  BMA.cf <- as.numeric( c(post.beta, post.se, z.score, p.value,
+                          PrDGivenM1,PrDGivenM2))
+  names(BMA.cf) <- c("post.beta", "post.se", "z.score", "p.value",
+                     "PrDGivenM1","PrDGivenM1")
   BMA.cf
   
   #AIC WAY
@@ -98,8 +101,10 @@ run.BMA <- function(d){
   post.se.aic <- sqrt(sum(((betas.se^2)+(betas^2))*PrMGivenD.aic) - (post.beta.aic^2))
   z.score.aic <- post.beta.aic/post.se.aic
   p.value.aic <- 2*pnorm(-abs(z.score.aic))
-  BMA.aic <- c(post.beta.aic, post.se.aic, z.score.aic, p.value.aic)
-  names(BMA.aic) <- c("post.beta.aic", "post.se.aic", "z.score.aic", "p.value.aic")
+  BMA.aic <- c(post.beta.aic, post.se.aic, z.score.aic, p.value.aic,
+               PrMGivenD.aic[1],PrMGivenD.aic[2])
+  names(BMA.aic) <- c("post.beta.aic", "post.se.aic", "z.score.aic", "p.value.aic",
+                      "PrDGivenM1","PrDGivenM1")
   BMA.aic
   result <- list(BMA.cf,BMA.aic)
   return(result)
