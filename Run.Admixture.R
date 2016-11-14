@@ -8,6 +8,7 @@ library(ggplot2)
 library(reshape)
 library(plyr)
 library(gridExtra)
+library(RColorBrewer)
 #Source Functions
 source("Analysis.Admixture.R")
 set.seed(50)
@@ -100,6 +101,10 @@ names(OverallResults) <- c("beta.Q.cases", "beta.Q.controls", "beta.L.cases", "b
                            "logistic.cc.beta", "logistic.cc.se", "logistic.cc.power",
                            "BMA.cf.beta", "BMA.cf.se", "BMA.cf.power","BMA.cf.PrMGivenD1","BMA.cf.PrMGivenD2",
                            "BMA.aic.beta", "BMA.aic.se", "BMA.aic.power","BMA.aic.PrMGivenD1","BMA.aic.PrMGivenD2")
+
+#################################
+# RESULTS - WRITING
+#################################
 #Print Results
 OverallResults
 t <- Sys.Date()
@@ -108,17 +113,17 @@ write.csv(OverallResults,
 
 #Reshape data (Power,CF POsterior, AIC POsterior)
 #Power: CF
-mdat <- OverallResults[c("beta.L.controls","case.only.power","case.control.power",
+mdat.power.cf <- OverallResults[c("beta.L.controls","case.only.power","case.control.power",
                          "BMA.cf.power")]
-dat.power <- melt(mdat,id="beta.L.controls")
-names(dat.power) <- c("beta.L.controls","Model","Power")
-dat.power$Model <- as.character(dat.power$Model)
-dat.power[dat.power=="case.only.power"] <- "Case-Only"
-dat.power[dat.power=="case.control.power"] <- "Case-Control"
-dat.power[dat.power=="BMA.cf.power"] <- "BMA"
-dat.power <- dat.power[order(dat.power$beta.L.controls),]
-dat.power$Model <- as.factor(dat.power$Model)
-dat.power$Model <- relevel(dat.power$Model,"Case-Only")
+dat.power.cf <- melt(mdat.power.cf,id="beta.L.controls")
+names(dat.power.cf) <- c("beta.L.controls","Model","Power")
+dat.power.cf$Model <- as.character(dat.power.cf$Model)
+dat.power.cf[dat.power.cf=="case.only.power"] <- "Case-Only"
+dat.power.cf[dat.power.cf=="case.control.power"] <- "Case-Control"
+dat.power.cf[dat.power.cf=="BMA.cf.power"] <- "BMA"
+#dat.power.cf <- dat.power.cf[order(dat.power.cf$beta.L.controls),]
+dat.power.cf$Model <- as.factor(dat.power.cf$Model)
+dat.power.cf$Model <- relevel(dat.power.cf$Model,"Case-Only")
 
 #Power: AIC
 mdat.power.aic <- OverallResults[c("beta.L.controls","case.only.power","case.control.power",
@@ -128,8 +133,8 @@ names(dat.power.aic) <- c("beta.L.controls","Model","Power")
 dat.power.aic$Model <- as.character(dat.power.aic$Model)
 dat.power.aic[dat.power.aic=="case.only.power"] <- "Case-Only"
 dat.power.aic[dat.power.aic=="case.control.power"] <- "Case-Control"
-dat.power.aic[dat.power.aic=="BMA.cf.power"] <- "BMA"
-dat.power.aic <- dat.power[order(dat.power.aic$beta.L.controls),]
+dat.power.aic[dat.power.aic=="BMA.aic.power"] <- "BMA"
+#dat.power.aic <- dat.power.aic[order(dat.power.aic$beta.L.controls),]
 dat.power.aic$Model <- as.factor(dat.power.aic$Model)
 dat.power.aic$Model <- relevel(dat.power.aic$Model,"Case-Only")
 
@@ -148,59 +153,87 @@ dat.aic$Model <- as.character(dat.aic$Model)
 dat.aic[dat.aic=="BMA.aic.PrMGivenD1"] <- "Case-Only"
 dat.aic[dat.aic=="BMA.aic.PrMGivenD2"] <- "Case-Control"
 
-#Plot
-pdf(paste("C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/11.14.2016/",t,"_CF_Results.pdf"),width=18)
+###########################
+# PLOTTING
+###########################
+#Plot - Closed-Form
+pdf(paste("C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/11.14.2016/",t,"_CF_Results.pdf"),width=15)
 #Power
-p1 <- ggplot(dat.power, aes(x = beta.L.controls, y = Power,fill=Model)) +
-  geom_bar(stat='identity') + 
-  ggtitle("Power, Beta_L.Cases=0.03 ")
-
-p1 <- ggplot(dat.power.aic, aes(x=beta.L.controls,y=Power,fill=Model)) +
+p1 <- ggplot(dat.power.cf, aes(x=beta.L.controls,y=Power,fill=Model)) +
   geom_bar(stat="identity",position="dodge") +
-  ggtitle("Power, Beta_L.Cases=0.03, Closed-form ")
+  ggtitle("Power, Beta_L.Cases=0.03, Closed-form") +
+  scale_fill_manual(values=c("dodgerblue3", "palevioletred", "seagreen3")) + 
+  scale_x_discrete(limits=seq(0.0,0.07,by=0.01))  
 
 #BMA.cf (Posterior)
 p2 <- ggplot(dat.cf, aes(x = beta.L.controls, y = PrMGivenD,fill=Model)) +
   geom_bar(stat='identity') + 
-  ggtitle("BMA.cf Posterior Probability, Beta_L.Cases=0.03")
+  ggtitle("BMA.cf Posterior Probability, Beta_L.Cases=0.03") + 
+  scale_x_discrete(limits=seq(0.0,0.07,by=0.01)) +  
+  scale_fill_brewer(palette="Paired") +
+  theme_minimal()
+
+grid.arrange(p1, p2, ncol=2)
+dev.off()
+
+#Plot - AIC
+pdf(paste("C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/11.14.2016/",t,"_AIC_Results.pdf"),width=15)
+#Power
+p3 <- ggplot(dat.power.aic, aes(x=beta.L.controls,y=Power,fill=Model)) +
+  geom_bar(stat="identity",position="dodge") +
+  ggtitle("Power, Beta_L.Cases=0.03, AIC") + 
+  scale_fill_manual(values=c("dodgerblue3", "palevioletred", "seagreen3")) + 
+  scale_x_discrete(limits=seq(0.0,0.07,by=0.01))  
+
 #BMA.aic (Posterior)
-p3 <- ggplot(dat.aic, aes(x = beta.L.controls, y = PrMGivenD,fill=Model)) +
+p4 <- ggplot(dat.aic, aes(x = beta.L.controls, y = PrMGivenD,fill=Model)) +
   geom_bar(stat='identity') + 
-  ggtitle("BMA.aic Posterior Probability, Beta_L.Cases=0.03")
+  ggtitle("BMA.aic Posterior Probability, Beta_L.Cases=0.03") + 
+  scale_x_discrete(limits=seq(0.0,0.07,by=0.01)) +  
+  scale_fill_brewer(palette="Paired") +
+  theme_minimal()
+  grid.arrange(p3, p4, ncol=2) 
+dev.off()
 
-grid.arrange(p1, p2, p3, ncol=3)
+# #Closed-Form vs. AIC
+# pdf(paste("C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/11.14.2016/",t,"_Power.pdf"),width=15)
+# grid.arrange(p1, p3, ncol=2)
+# dev.off()
+# #AIC
+# pdf(paste("C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/11.14.2016/",t,"_Post.pdf"),width=15)
+# grid.arrange(p2, p4, ncol=2)
+# dev.off()
+#ALL
+pdf(paste("C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/11.14.2016/",t,"_ALL.pdf"),width=15)
+grid.arrange(p1,p2,p3,p4,ncol=2)
 dev.off()
 
 
-
-
-
-
-#Plot Results (Old)
-pdf(paste("C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/11.14.2016/",t,"_Results.pdf"),width=12)
-plot(OverallResults$BMA.cf.power~OverallResults$beta.L.cases,
-     type="o",pch=".", col="red",lwd=1.8,	
-     main = expression(paste(beta,"_L(controls) = ", beta,"_Q(controls) = ",
-                             beta,"_Q(cases) = 0")),
-     xlab = expression(paste(beta,"_L(cases)")),
-     ylab = "Empirical Power",
-     xlim=c(-0.08,0.08),ylim=c(0,1),
-     xaxt="n")
-lines(OverallResults$case.only.power~OverallResults$beta.L.cases,
-      type="o", pch=".", lty=2, col="blue",lwd=1.8)
-
-lines(OverallResults$case.control.power~OverallResults$beta.L.cases,
-      type="o", pch=".", lty=3, col="black",lwd=1.8)
-
-lines(OverallResults$control.only.power~OverallResults$beta.L.cases,
-      type="o", pch=".", lty=4, col="green",lwd=1.8)
-
-lines(OverallResults$BMA.aic.power~OverallResults$beta.L.cases,
-      type="o", pch=".", lty=5, col=118,lwd=1.8)
-
-legend("top", c("BMA","Case-Only","Case-Control","Control-Only","BMA.aic"), 
-       lty=c(1,2,3,4,5),cex=0.8,
-       col=c("red","blue","black","green",118))
-axis(1, at=OverallResults$beta.L.cases,labels=round(OverallResults$beta.L.cases,digits=2),
-     col.axis="black", las=2, cex.axis=0.7, tck=-.01)
-dev.off()
+# #Plot Results (Old)
+# pdf(paste("C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/11.14.2016/",t,"_Results.pdf"),width=12)
+# plot(OverallResults$BMA.cf.power~OverallResults$beta.L.cases,
+#      type="o",pch=".", col="red",lwd=1.8,	
+#      main = expression(paste(beta,"_L(controls) = ", beta,"_Q(controls) = ",
+#                              beta,"_Q(cases) = 0")),
+#      xlab = expression(paste(beta,"_L(cases)")),
+#      ylab = "Empirical Power",
+#      xlim=c(-0.08,0.08),ylim=c(0,1),
+#      xaxt="n")
+# lines(OverallResults$case.only.power~OverallResults$beta.L.cases,
+#       type="o", pch=".", lty=2, col="blue",lwd=1.8)
+# 
+# lines(OverallResults$case.control.power~OverallResults$beta.L.cases,
+#       type="o", pch=".", lty=3, col="black",lwd=1.8)
+# 
+# lines(OverallResults$control.only.power~OverallResults$beta.L.cases,
+#       type="o", pch=".", lty=4, col="green",lwd=1.8)
+# 
+# lines(OverallResults$BMA.aic.power~OverallResults$beta.L.cases,
+#       type="o", pch=".", lty=5, col=118,lwd=1.8)
+# 
+# legend("top", c("BMA","Case-Only","Case-Control","Control-Only","BMA.aic"), 
+#        lty=c(1,2,3,4,5),cex=0.8,
+#        col=c("red","blue","black","green",118))
+# axis(1, at=OverallResults$beta.L.cases,labels=round(OverallResults$beta.L.cases,digits=2),
+#      col.axis="black", las=2, cex.axis=0.7, tck=-.01)
+# dev.off()

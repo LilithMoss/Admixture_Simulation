@@ -86,7 +86,7 @@ run.BMA <- function(d){
   p.value <- 2*pnorm(-abs(z.score))
   #BMA.cf <- as.numeric( c(post.beta, post.se, z.score, p.value))
   BMA.cf <- as.numeric( c(post.beta, post.se, z.score, p.value,
-                          PrDGivenM1,PrDGivenM2))
+                          as.numeric(PrMGivenD.new[1]),as.numeric(PrMGivenD.new[2])))
   names(BMA.cf) <- c("post.beta", "post.se", "z.score", "p.value",
                      "PrDGivenM1","PrDGivenM1")
   BMA.cf
