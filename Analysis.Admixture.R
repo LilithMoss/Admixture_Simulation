@@ -23,34 +23,30 @@ simulateData <- function() {  #Assumes that scenario parameters have already bee
 # #TEST############################################################
 # #Case-Only
 # # r.case <- summary(lm(Q~1+offset(L/2), subset=Y==1, data=d))$coef[1,]
-# r.case.only <- summary(lm(Q ~ -1 + offset((as.numeric(L)/2)) + Y, data=d) )$coefficients 
-# 
+# r.case.only <- summary(lm(Q ~ -1 + offset((as.numeric(L)/2)) + Y, data=d) )$coefficients
+#
 # m1 <- lm((Q-0.5*L)~-1+Y)
 # summary(m1)
-# 
+#
 # r.case <- summary(lm(Q~1+offset(L/2), subset=Y==1, data=d))
-# 
-# 
+#
+#
 # #Case-Control
 # # r.casecontrol.lin <- summary(lm(Q ~ 1 + offset((as.numeric(L)/2)) + Y, data=d))$coef[2,] # case-control
-# r.case.control <- summary(lm(Q ~ 1 + offset((as.numeric(L)/2)) + Y, data=d) )$coefficients 
-# 
-# 
-# 
-# 
+# r.case.control <- summary(lm(Q ~ 1 + offset((as.numeric(L)/2)) + Y, data=d) )$coefficients
+#
+#
+#
+#
 # simulateData.simple <- function(){
 #   N <- N.controls+N.cases
 #   Y <- c(rep(1, N.cases), rep(0, N.controls)) #Case status 1 = Case
 #   Z <- ifelse(Y==1,0,1) #Control status; 1 = Control
-#   diff <- 
-#   
-#   
+#   diff <-
+#
+#
 # }
 # #TEST############################################################
-
-
-
-
 
 run.BMA <- function(d){
   Y <- d$Y

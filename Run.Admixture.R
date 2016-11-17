@@ -39,22 +39,26 @@ L.sd <- 0.1
 
 #Run multiple simulations and report power
 #Set number of Simulations
-numSims = 500
+numSims = 100
 
 #Set sets of parameters
 beta.Q.cases.list <- c(0.0) #Q in cases
 beta.Q.controls.list <- c(0.0) #Q in controls
 #beta.L.cases.list <- c(0.0, 0.02, 0.04, 0.05, 0.06) #L effect in cases
-beta.L.cases.list <- seq(-0.05,0.05,by=0.01)
+beta.L.cases.list <- seq(0.03,0.03,by=0.01)
 #beta.L.controls.list <- seq(0.0, 0.07, by=0.01) #L effect in controls
 beta.L.controls.list <- c(0.0)
 
 #Set Variance
-sig <- seq(0.01,0.01,by=0.01)
-sigma_1 <- (sig/1.96)^2
+sig <- seq(0.01,0.1,by=0.01)
+sigma_1 <- (sig/1.96)^2 #This is Variance
 #sigma_1 <- (0.01/1.96)^2
 #sigma2 <- (sig/1.96)^2
 sigma_2 <- 0
+
+
+
+
 
 #All possible combinations
 param <- expand.grid(beta.Q.cases.list,beta.Q.controls.list,
@@ -364,21 +368,23 @@ dat.aic[dat.aic=="BMA.aic.PrMGivenD2"] <- "Case-Control"
 # PLOTTING
 ###########################
 #Plot - Closed-Form
-pdf(paste("C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/11.14.2016/",t,"_CF_Variance.pdf"),width=15)
+pdf(paste("C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/11.17.2016/",t,"_CF_Variance.pdf"),width=15)
 #Power
 p1 <- ggplot(dat.power.cf, aes(x=Sigma.1,y=Power,fill=Model)) +
   geom_bar(stat="identity",position="dodge") +
-  ggtitle("Power, Beta_L.Cases=0.03, Closed-form") +
+  ggtitle("Power, Beta_L.Cases=0.03, Beta_L.Controls=0, Closed-form") +
   scale_fill_manual(values=c("dodgerblue3", "palevioletred", "seagreen3")) + 
   #scale_x_discrete(limits=seq(0.0,0.07,by=0.01))  
   #scale_x_discrete(limits=unique(round(dat.power.cf$Sigma.1,3)))  
-  scale_x_discrete(limits=1:10)  
+  #scale_x_discrete(limits=1:10)
+  scale_x_discrete(limits=sig)
 #BMA.cf (Posterior)
 p2 <- ggplot(dat.cf, aes(x = Sigma.1, y = PrMGivenD,fill=Model)) +
   geom_bar(stat='identity') + 
-  ggtitle("BMA.cf Posterior Probability, Beta_L.Cases=0.03") + 
+  ggtitle("BMA.cf Posterior Probability, Beta_L.Cases=0.03, Beta_L.Controls=0") + 
   #scale_x_discrete(limits=unique(round(dat.power.cf$Sigma.1,3))) +  
   scale_x_discrete(limits=1:10) + 
+  #scale_x_discrete(limits=round(sig,5)) +
   scale_fill_brewer(palette="Paired") +
   theme_minimal()
 
@@ -386,27 +392,29 @@ grid.arrange(p1, p2, ncol=2)
 dev.off()
 
 #Plot - AIC
-pdf(paste("C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/11.14.2016/",t,"_AIC_Variance.pdf"),width=12)
+pdf(paste("C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/11.17.2016/",t,"_AIC_Variance.pdf"),width=12)
 #Power
 p3 <- ggplot(dat.power.aic, aes(x=Sigma.1,y=Power,fill=Model)) +
   geom_bar(stat="identity",position="dodge") +
   ggtitle("Power, Beta_L.Cases=0.03, AIC") + 
   scale_fill_manual(values=c("dodgerblue3", "palevioletred", "seagreen3")) + 
   #scale_x_discrete(limits=unique(round(dat.power.aic$Sigma.1,3)))    
-  scale_x_discrete(limits=1:10)
+  #scale_x_discrete(limits=1:10)
+  scale_x_discrete(limits=sig)
 #BMA.aic (Posterior)
 p4 <- ggplot(dat.aic, aes(x = Sigma.1, y = PrMGivenD,fill=Model)) +
   geom_bar(stat='identity') + 
   ggtitle("BMA.aic Posterior Probability, Beta_L.Cases=0.03") + 
   #scale_x_discrete(limits=unique(round(dat.power.aic$Sigma.1,3))) +  
-  scale_x_discrete(limits=1:10) + 
+  #scale_x_discrete(limits=1:10) + 
+  scale_x_discrete(limits=sig) +
   scale_fill_brewer(palette="Paired") +
   theme_minimal()
 grid.arrange(p3, p4, ncol=2) 
 dev.off()
 
 #All 4 grid plots
-pdf(paste("C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/11.14.2016/",t,"_ALL_Variance.pdf"),width=15)
+pdf(paste("C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/11.17.2016/",t,"_ALL_Variance.pdf"),width=15)
 grid.arrange(p1,p2,p3,p4,ncol=2)
 dev.off()
 
