@@ -10,13 +10,9 @@ library(plyr)
 library(gridExtra)
 library(RColorBrewer)
 #Source Functions
-#func_path <- "/home/pmd-01/chemenya/admix_simulation/"
-#output_path <- "/home/pmd-01/chemenya/admix_simulation/"
-func_path <- "C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Admixture_Simulation/"
-output_path <- "C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/12.1.2016/"
-
-
-source(paste0(func_path,"Analysis.Admixture.R"))
+func_path <- "/home/pmd-01/chemenya/admix_simulation/"
+output_path <- "/home/pmd-01/chemenya/admix_simulation/"
+source(paste0(func.path,"Analysis.Admixture.R"))
 #source("Analysis.Admixture.R")
 set.seed(50)
 # Set Parameters
@@ -46,23 +42,20 @@ L.sd <- 0.1
 
 #Run multiple simulations and report power
 #Set number of Simulations
-numSims = 100
+numSims = 1000
 
 #Set sets of parameters
 beta.Q.cases.list <- c(0.0) #Q in cases
 beta.Q.controls.list <- c(0.0) #Q in controls
 #beta.L.cases.list <- c(0.0, 0.02, 0.04, 0.05, 0.06) #L effect in cases
-beta.L.cases.list <- seq(0.01,0.01,by=0.01)
-beta.L.controls.list <- seq(-0.05, 0.05, by=0.01) #L effect in controls
-#beta.L.controls.list <- c(0.0)
+beta.L.cases.list <- seq(-0.02,0.02,by=0.001)
+#beta.L.controls.list <- seq(0.0, 0.07, by=0.01) #L effect in controls
+beta.L.controls.list <- c(0.0)
 
 #Set Variance
 sig <- seq(0.05,0.05,by=0.01)
 sigma_1 <- (sig/1.96)^2 #This is Variance
-#sigma_1 <- (0.01/1.96)^2
-#sigma2 <- (sig/1.96)^2
 sigma_2 <- 0
-
 
 #All possible combinations
 param <- expand.grid(beta.Q.cases.list,beta.Q.controls.list,
@@ -136,7 +129,6 @@ t <- Sys.Date()
 write.csv(OverallResults,
           paste(output_path,t,"_Results_Fine.csv"),row.names=F)
 
-
 ##############################################################
 # Vary Beta in Cases
 ##############################################################
@@ -186,7 +178,7 @@ dat.aic[dat.aic=="BMA.aic.PrMGivenD2"] <- "Case-Control"
 # PLOTTING
 ###########################
 #Plot - Closed-Form
-pdf(paste("C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/11.17.2016/",t,"_CF_Results.pdf"),width=15)
+pdf(paste(output_path,t,"_CF_Results.pdf"),width=15)
 #Power
 p1 <- ggplot(dat.power.cf, aes(x=beta.L.cases,y=Power,fill=Model)) +
   geom_bar(stat="identity",position="dodge") +
@@ -208,7 +200,7 @@ grid.arrange(p1, p2, ncol=2)
 dev.off()
 
 #Plot - AIC
-pdf(paste("C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/11.17.2016/",t,"_AIC_Results.pdf"),width=15)
+pdf(paste(output_path,t,"_AIC_Results.pdf"),width=15)
 #Power
 p3 <- ggplot(dat.power.aic, aes(x=beta.L.cases,y=Power,fill=Model)) +
   geom_bar(stat="identity",position="dodge") +
@@ -231,204 +223,203 @@ grid.arrange(p3, p4, ncol=2)
 dev.off()
 
 #All 4 grid plots
-pdf(paste("C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/11.17.2016/",t,"_ALL.pdf"),width=15)
+pdf(paste(output_path,t,"_ALL.pdf"),width=15)
 grid.arrange(p1,p2,p3,p4,ncol=2)
 dev.off()
-
 
 
 ##############################################################
 # Vary Beta in Controls
 ##############################################################
-#Reshape data (Power,CF POsterior, AIC POsterior)
-#Power: CF
-mdat.power.cf <- OverallResults[c("beta.L.controls","case.only.power","case.control.power",
-                         "BMA.cf.power")]
-dat.power.cf <- melt(mdat.power.cf,id="beta.L.controls")
-names(dat.power.cf) <- c("beta.L.controls","Model","Power")
-dat.power.cf$Model <- as.character(dat.power.cf$Model)
-dat.power.cf[dat.power.cf=="case.only.power"] <- "Case-Only"
-dat.power.cf[dat.power.cf=="case.control.power"] <- "Case-Control"
-dat.power.cf[dat.power.cf=="BMA.cf.power"] <- "BMA"
-#dat.power.cf <- dat.power.cf[order(dat.power.cf$beta.L.controls),]
-dat.power.cf$Model <- as.factor(dat.power.cf$Model)
-dat.power.cf$Model <- relevel(dat.power.cf$Model,"Case-Only")
-
-#Power: AIC
-mdat.power.aic <- OverallResults[c("beta.L.controls","case.only.power","case.control.power",
-                         "BMA.aic.power")]
-dat.power.aic <- melt(mdat.power.aic,id="beta.L.controls")
-names(dat.power.aic) <- c("beta.L.controls","Model","Power")
-dat.power.aic$Model <- as.character(dat.power.aic$Model)
-dat.power.aic[dat.power.aic=="case.only.power"] <- "Case-Only"
-dat.power.aic[dat.power.aic=="case.control.power"] <- "Case-Control"
-dat.power.aic[dat.power.aic=="BMA.aic.power"] <- "BMA"
-#dat.power.aic <- dat.power.aic[order(dat.power.aic$beta.L.controls),]
-dat.power.aic$Model <- as.factor(dat.power.aic$Model)
-dat.power.aic$Model <- relevel(dat.power.aic$Model,"Case-Only")
-
-#CF
-mdat.cf <- OverallResults[c("beta.L.controls","BMA.cf.PrMGivenD1","BMA.cf.PrMGivenD2")]
-dat.cf <- melt(mdat.cf,id="beta.L.controls")
-names(dat.cf) <- c("beta.L.controls","Model","PrMGivenD")
-dat.cf$Model <- as.character(dat.cf$Model)
-dat.cf[dat.cf=="BMA.cf.PrMGivenD1"] <- "Case-Only"
-dat.cf[dat.cf=="BMA.cf.PrMGivenD2"] <- "Case-Control"
-#AIC
-mdat.aic <- OverallResults[c("beta.L.controls","BMA.aic.PrMGivenD1","BMA.aic.PrMGivenD2")]
-dat.aic <- melt(mdat.aic,id="beta.L.controls")
-names(dat.aic) <- c("beta.L.controls","Model","PrMGivenD")
-dat.aic$Model <- as.character(dat.aic$Model)
-dat.aic[dat.aic=="BMA.aic.PrMGivenD1"] <- "Case-Only"
-dat.aic[dat.aic=="BMA.aic.PrMGivenD2"] <- "Case-Control"
-
-###########################
-# PLOTTING
-###########################
-#Plot - Closed-Form
-pdf(paste("C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/11.17.2016/",t,"_CF_Results.pdf"),width=15)
-#Power
-p1 <- ggplot(dat.power.cf, aes(x=beta.L.controls,y=Power,fill=Model)) +
-  geom_bar(stat="identity",position="dodge") +
-  ggtitle("Power, Beta_L.Cases=0.03, Closed-form") +
-  scale_fill_manual(values=c("dodgerblue3", "palevioletred", "seagreen3")) + 
-  scale_x_discrete(limits=seq(0.0,0.07,by=0.01))  
-
-#BMA.cf (Posterior)
-p2 <- ggplot(dat.cf, aes(x = beta.L.controls, y = PrMGivenD,fill=Model)) +
-  geom_bar(stat='identity') + 
-  ggtitle("BMA.cf Posterior Probability, Beta_L.Cases=0.03") + 
-  scale_x_discrete(limits=seq(0.0,0.07,by=0.01)) +  
-  scale_fill_brewer(palette="Paired") +
-  theme_minimal()
-
-grid.arrange(p1, p2, ncol=2)
-dev.off()
-
-#Plot - AIC
-pdf(paste("C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/11.17.2016/",t,"_AIC_Results.pdf"),width=15)
-#Power
-p3 <- ggplot(dat.power.aic, aes(x=beta.L.controls,y=Power,fill=Model)) +
-  geom_bar(stat="identity",position="dodge") +
-  ggtitle("Power, Beta_L.Cases=0.03, AIC") + 
-  scale_fill_manual(values=c("dodgerblue3", "palevioletred", "seagreen3")) + 
-  scale_x_discrete(limits=seq(0.0,0.07,by=0.01))  
-
-#BMA.aic (Posterior)
-p4 <- ggplot(dat.aic, aes(x = beta.L.controls, y = PrMGivenD,fill=Model)) +
-  geom_bar(stat='identity') + 
-  ggtitle("BMA.aic Posterior Probability, Beta_L.Cases=0.03") + 
-  scale_x_discrete(limits=seq(0.0,0.07,by=0.01)) +  
-  scale_fill_brewer(palette="Paired") +
-  theme_minimal()
-  grid.arrange(p3, p4, ncol=2) 
-dev.off()
-
-#All 4 grid plots
-pdf(paste("C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/11.17.2016/",t,"_ALL.pdf"),width=15)
-grid.arrange(p1,p2,p3,p4,ncol=2)
-dev.off()
-#######################################################
-#VARIANCE
-#Reshape data (Power,CF POsterior, AIC POsterior)
-#Power: CF
-mdat.power.cf <- OverallResults[c("Sigma.1","case.only.power","case.control.power",
-                                  "BMA.cf.power")]
-dat.power.cf <- melt(mdat.power.cf,id="Sigma.1")
-names(dat.power.cf) <- c("Sigma.1","Model","Power")
-dat.power.cf$Model <- as.character(dat.power.cf$Model)
-dat.power.cf[dat.power.cf=="case.only.power"] <- "Case-Only"
-dat.power.cf[dat.power.cf=="case.control.power"] <- "Case-Control"
-dat.power.cf[dat.power.cf=="BMA.cf.power"] <- "BMA"
-#dat.power.cf <- dat.power.cf[order(dat.power.cf$Sigma.1),]
-dat.power.cf$Model <- as.factor(dat.power.cf$Model)
-dat.power.cf$Model <- relevel(dat.power.cf$Model,"Case-Only")
-
-#Power: AIC
-mdat.power.aic <- OverallResults[c("Sigma.1","case.only.power","case.control.power",
-                                   "BMA.aic.power")]
-dat.power.aic <- melt(mdat.power.aic,id="Sigma.1")
-names(dat.power.aic) <- c("Sigma.1","Model","Power")
-dat.power.aic$Model <- as.character(dat.power.aic$Model)
-dat.power.aic[dat.power.aic=="case.only.power"] <- "Case-Only"
-dat.power.aic[dat.power.aic=="case.control.power"] <- "Case-Control"
-dat.power.aic[dat.power.aic=="BMA.aic.power"] <- "BMA"
-#dat.power.aic <- dat.power.aic[order(dat.power.aic$Sigma.1),]
-dat.power.aic$Model <- as.factor(dat.power.aic$Model)
-dat.power.aic$Model <- relevel(dat.power.aic$Model,"Case-Only")
-
-#CF
-mdat.cf <- OverallResults[c("Sigma.1","BMA.cf.PrMGivenD1","BMA.cf.PrMGivenD2")]
-dat.cf <- melt(mdat.cf,id="Sigma.1")
-names(dat.cf) <- c("Sigma.1","Model","PrMGivenD")
-dat.cf$Model <- as.character(dat.cf$Model)
-dat.cf[dat.cf=="BMA.cf.PrMGivenD1"] <- "Case-Only"
-dat.cf[dat.cf=="BMA.cf.PrMGivenD2"] <- "Case-Control"
-#AIC
-mdat.aic <- OverallResults[c("Sigma.1","BMA.aic.PrMGivenD1","BMA.aic.PrMGivenD2")]
-dat.aic <- melt(mdat.aic,id="Sigma.1")
-names(dat.aic) <- c("Sigma.1","Model","PrMGivenD")
-dat.aic$Model <- as.character(dat.aic$Model)
-dat.aic[dat.aic=="BMA.aic.PrMGivenD1"] <- "Case-Only"
-dat.aic[dat.aic=="BMA.aic.PrMGivenD2"] <- "Case-Control"
-
-###########################
-# PLOTTING
-###########################
-#Plot - Closed-Form
-pdf(paste("C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/11.17.2016/",t,"_CF_Variance.pdf"),width=15)
-#Power
-p1 <- ggplot(dat.power.cf, aes(x=Sigma.1,y=Power,fill=Model)) +
-  geom_bar(stat="identity",position="dodge") +
-  ggtitle("Power, Beta_L.Cases=0.03, Beta_L.Controls=0, Closed-form") +
-  scale_fill_manual(values=c("dodgerblue3", "palevioletred", "seagreen3")) + 
-  #scale_x_discrete(limits=seq(0.0,0.07,by=0.01))  
-  #scale_x_discrete(limits=unique(round(dat.power.cf$Sigma.1,3)))  
-  #scale_x_discrete(limits=1:10)
-  scale_x_discrete(limits=sig)
-#BMA.cf (Posterior)
-p2 <- ggplot(dat.cf, aes(x = Sigma.1, y = PrMGivenD,fill=Model)) +
-  geom_bar(stat='identity') + 
-  ggtitle("BMA.cf Posterior Probability, Beta_L.Cases=0.03, Beta_L.Controls=0") + 
-  #scale_x_discrete(limits=unique(round(dat.power.cf$Sigma.1,3))) +  
-  scale_x_discrete(limits=1:10) + 
-  #scale_x_discrete(limits=round(sig,5)) +
-  scale_fill_brewer(palette="Paired") +
-  theme_minimal()
-
-grid.arrange(p1, p2, ncol=2)
-dev.off()
-
-#Plot - AIC
-pdf(paste("C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/11.17.2016/",t,"_AIC_Variance.pdf"),width=12)
-#Power
-p3 <- ggplot(dat.power.aic, aes(x=Sigma.1,y=Power,fill=Model)) +
-  geom_bar(stat="identity",position="dodge") +
-  ggtitle("Power, Beta_L.Cases=0.03, AIC") + 
-  scale_fill_manual(values=c("dodgerblue3", "palevioletred", "seagreen3")) + 
-  #scale_x_discrete(limits=unique(round(dat.power.aic$Sigma.1,3)))    
-  #scale_x_discrete(limits=1:10)
-  scale_x_discrete(limits=sig)
-#BMA.aic (Posterior)
-p4 <- ggplot(dat.aic, aes(x = Sigma.1, y = PrMGivenD,fill=Model)) +
-  geom_bar(stat='identity') + 
-  ggtitle("BMA.aic Posterior Probability, Beta_L.Cases=0.03") + 
-  #scale_x_discrete(limits=unique(round(dat.power.aic$Sigma.1,3))) +  
-  #scale_x_discrete(limits=1:10) + 
-  scale_x_discrete(limits=sig) +
-  scale_fill_brewer(palette="Paired") +
-  theme_minimal()
-grid.arrange(p3, p4, ncol=2) 
-dev.off()
-
-#All 4 grid plots
-pdf(paste("C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/11.17.2016/",t,"_ALL_Variance.pdf"),width=15)
-grid.arrange(p1,p2,p3,p4,ncol=2)
-dev.off()
+# #Reshape data (Power,CF POsterior, AIC POsterior)
+# #Power: CF
+# mdat.power.cf <- OverallResults[c("beta.L.controls","case.only.power","case.control.power",
+#                          "BMA.cf.power")]
+# dat.power.cf <- melt(mdat.power.cf,id="beta.L.controls")
+# names(dat.power.cf) <- c("beta.L.controls","Model","Power")
+# dat.power.cf$Model <- as.character(dat.power.cf$Model)
+# dat.power.cf[dat.power.cf=="case.only.power"] <- "Case-Only"
+# dat.power.cf[dat.power.cf=="case.control.power"] <- "Case-Control"
+# dat.power.cf[dat.power.cf=="BMA.cf.power"] <- "BMA"
+# #dat.power.cf <- dat.power.cf[order(dat.power.cf$beta.L.controls),]
+# dat.power.cf$Model <- as.factor(dat.power.cf$Model)
+# dat.power.cf$Model <- relevel(dat.power.cf$Model,"Case-Only")
+# 
+# #Power: AIC
+# mdat.power.aic <- OverallResults[c("beta.L.controls","case.only.power","case.control.power",
+#                          "BMA.aic.power")]
+# dat.power.aic <- melt(mdat.power.aic,id="beta.L.controls")
+# names(dat.power.aic) <- c("beta.L.controls","Model","Power")
+# dat.power.aic$Model <- as.character(dat.power.aic$Model)
+# dat.power.aic[dat.power.aic=="case.only.power"] <- "Case-Only"
+# dat.power.aic[dat.power.aic=="case.control.power"] <- "Case-Control"
+# dat.power.aic[dat.power.aic=="BMA.aic.power"] <- "BMA"
+# #dat.power.aic <- dat.power.aic[order(dat.power.aic$beta.L.controls),]
+# dat.power.aic$Model <- as.factor(dat.power.aic$Model)
+# dat.power.aic$Model <- relevel(dat.power.aic$Model,"Case-Only")
+# 
+# #CF
+# mdat.cf <- OverallResults[c("beta.L.controls","BMA.cf.PrMGivenD1","BMA.cf.PrMGivenD2")]
+# dat.cf <- melt(mdat.cf,id="beta.L.controls")
+# names(dat.cf) <- c("beta.L.controls","Model","PrMGivenD")
+# dat.cf$Model <- as.character(dat.cf$Model)
+# dat.cf[dat.cf=="BMA.cf.PrMGivenD1"] <- "Case-Only"
+# dat.cf[dat.cf=="BMA.cf.PrMGivenD2"] <- "Case-Control"
+# #AIC
+# mdat.aic <- OverallResults[c("beta.L.controls","BMA.aic.PrMGivenD1","BMA.aic.PrMGivenD2")]
+# dat.aic <- melt(mdat.aic,id="beta.L.controls")
+# names(dat.aic) <- c("beta.L.controls","Model","PrMGivenD")
+# dat.aic$Model <- as.character(dat.aic$Model)
+# dat.aic[dat.aic=="BMA.aic.PrMGivenD1"] <- "Case-Only"
+# dat.aic[dat.aic=="BMA.aic.PrMGivenD2"] <- "Case-Control"
+# 
+# ###########################
+# # PLOTTING
+# ###########################
+# #Plot - Closed-Form
+# pdf(paste("C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/11.17.2016/",t,"_CF_Results.pdf"),width=15)
+# #Power
+# p1 <- ggplot(dat.power.cf, aes(x=beta.L.controls,y=Power,fill=Model)) +
+#   geom_bar(stat="identity",position="dodge") +
+#   ggtitle("Power, Beta_L.Cases=0.03, Closed-form") +
+#   scale_fill_manual(values=c("dodgerblue3", "palevioletred", "seagreen3")) + 
+#   scale_x_discrete(limits=seq(0.0,0.07,by=0.01))  
+# 
+# #BMA.cf (Posterior)
+# p2 <- ggplot(dat.cf, aes(x = beta.L.controls, y = PrMGivenD,fill=Model)) +
+#   geom_bar(stat='identity') + 
+#   ggtitle("BMA.cf Posterior Probability, Beta_L.Cases=0.03") + 
+#   scale_x_discrete(limits=seq(0.0,0.07,by=0.01)) +  
+#   scale_fill_brewer(palette="Paired") +
+#   theme_minimal()
+# 
+# grid.arrange(p1, p2, ncol=2)
+# dev.off()
+# 
+# #Plot - AIC
+# pdf(paste("C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/11.17.2016/",t,"_AIC_Results.pdf"),width=15)
+# #Power
+# p3 <- ggplot(dat.power.aic, aes(x=beta.L.controls,y=Power,fill=Model)) +
+#   geom_bar(stat="identity",position="dodge") +
+#   ggtitle("Power, Beta_L.Cases=0.03, AIC") + 
+#   scale_fill_manual(values=c("dodgerblue3", "palevioletred", "seagreen3")) + 
+#   scale_x_discrete(limits=seq(0.0,0.07,by=0.01))  
+# 
+# #BMA.aic (Posterior)
+# p4 <- ggplot(dat.aic, aes(x = beta.L.controls, y = PrMGivenD,fill=Model)) +
+#   geom_bar(stat='identity') + 
+#   ggtitle("BMA.aic Posterior Probability, Beta_L.Cases=0.03") + 
+#   scale_x_discrete(limits=seq(0.0,0.07,by=0.01)) +  
+#   scale_fill_brewer(palette="Paired") +
+#   theme_minimal()
+#   grid.arrange(p3, p4, ncol=2) 
+# dev.off()
+# 
+# #All 4 grid plots
+# pdf(paste("C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/11.17.2016/",t,"_ALL.pdf"),width=15)
+# grid.arrange(p1,p2,p3,p4,ncol=2)
+# dev.off()
+# #######################################################
+# #VARIANCE
+# #Reshape data (Power,CF POsterior, AIC POsterior)
+# #Power: CF
+# mdat.power.cf <- OverallResults[c("Sigma.1","case.only.power","case.control.power",
+#                                   "BMA.cf.power")]
+# dat.power.cf <- melt(mdat.power.cf,id="Sigma.1")
+# names(dat.power.cf) <- c("Sigma.1","Model","Power")
+# dat.power.cf$Model <- as.character(dat.power.cf$Model)
+# dat.power.cf[dat.power.cf=="case.only.power"] <- "Case-Only"
+# dat.power.cf[dat.power.cf=="case.control.power"] <- "Case-Control"
+# dat.power.cf[dat.power.cf=="BMA.cf.power"] <- "BMA"
+# #dat.power.cf <- dat.power.cf[order(dat.power.cf$Sigma.1),]
+# dat.power.cf$Model <- as.factor(dat.power.cf$Model)
+# dat.power.cf$Model <- relevel(dat.power.cf$Model,"Case-Only")
+# 
+# #Power: AIC
+# mdat.power.aic <- OverallResults[c("Sigma.1","case.only.power","case.control.power",
+#                                    "BMA.aic.power")]
+# dat.power.aic <- melt(mdat.power.aic,id="Sigma.1")
+# names(dat.power.aic) <- c("Sigma.1","Model","Power")
+# dat.power.aic$Model <- as.character(dat.power.aic$Model)
+# dat.power.aic[dat.power.aic=="case.only.power"] <- "Case-Only"
+# dat.power.aic[dat.power.aic=="case.control.power"] <- "Case-Control"
+# dat.power.aic[dat.power.aic=="BMA.aic.power"] <- "BMA"
+# #dat.power.aic <- dat.power.aic[order(dat.power.aic$Sigma.1),]
+# dat.power.aic$Model <- as.factor(dat.power.aic$Model)
+# dat.power.aic$Model <- relevel(dat.power.aic$Model,"Case-Only")
+# 
+# #CF
+# mdat.cf <- OverallResults[c("Sigma.1","BMA.cf.PrMGivenD1","BMA.cf.PrMGivenD2")]
+# dat.cf <- melt(mdat.cf,id="Sigma.1")
+# names(dat.cf) <- c("Sigma.1","Model","PrMGivenD")
+# dat.cf$Model <- as.character(dat.cf$Model)
+# dat.cf[dat.cf=="BMA.cf.PrMGivenD1"] <- "Case-Only"
+# dat.cf[dat.cf=="BMA.cf.PrMGivenD2"] <- "Case-Control"
+# #AIC
+# mdat.aic <- OverallResults[c("Sigma.1","BMA.aic.PrMGivenD1","BMA.aic.PrMGivenD2")]
+# dat.aic <- melt(mdat.aic,id="Sigma.1")
+# names(dat.aic) <- c("Sigma.1","Model","PrMGivenD")
+# dat.aic$Model <- as.character(dat.aic$Model)
+# dat.aic[dat.aic=="BMA.aic.PrMGivenD1"] <- "Case-Only"
+# dat.aic[dat.aic=="BMA.aic.PrMGivenD2"] <- "Case-Control"
+# 
+# ###########################
+# # PLOTTING
+# ###########################
+# #Plot - Closed-Form
+# pdf(paste("C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/11.17.2016/",t,"_CF_Variance.pdf"),width=15)
+# #Power
+# p1 <- ggplot(dat.power.cf, aes(x=Sigma.1,y=Power,fill=Model)) +
+#   geom_bar(stat="identity",position="dodge") +
+#   ggtitle("Power, Beta_L.Cases=0.03, Beta_L.Controls=0, Closed-form") +
+#   scale_fill_manual(values=c("dodgerblue3", "palevioletred", "seagreen3")) + 
+#   #scale_x_discrete(limits=seq(0.0,0.07,by=0.01))  
+#   #scale_x_discrete(limits=unique(round(dat.power.cf$Sigma.1,3)))  
+#   #scale_x_discrete(limits=1:10)
+#   scale_x_discrete(limits=sig)
+# #BMA.cf (Posterior)
+# p2 <- ggplot(dat.cf, aes(x = Sigma.1, y = PrMGivenD,fill=Model)) +
+#   geom_bar(stat='identity') + 
+#   ggtitle("BMA.cf Posterior Probability, Beta_L.Cases=0.03, Beta_L.Controls=0") + 
+#   #scale_x_discrete(limits=unique(round(dat.power.cf$Sigma.1,3))) +  
+#   scale_x_discrete(limits=1:10) + 
+#   #scale_x_discrete(limits=round(sig,5)) +
+#   scale_fill_brewer(palette="Paired") +
+#   theme_minimal()
+# 
+# grid.arrange(p1, p2, ncol=2)
+# dev.off()
+# 
+# #Plot - AIC
+# pdf(paste("C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/11.17.2016/",t,"_AIC_Variance.pdf"),width=12)
+# #Power
+# p3 <- ggplot(dat.power.aic, aes(x=Sigma.1,y=Power,fill=Model)) +
+#   geom_bar(stat="identity",position="dodge") +
+#   ggtitle("Power, Beta_L.Cases=0.03, AIC") + 
+#   scale_fill_manual(values=c("dodgerblue3", "palevioletred", "seagreen3")) + 
+#   #scale_x_discrete(limits=unique(round(dat.power.aic$Sigma.1,3)))    
+#   #scale_x_discrete(limits=1:10)
+#   scale_x_discrete(limits=sig)
+# #BMA.aic (Posterior)
+# p4 <- ggplot(dat.aic, aes(x = Sigma.1, y = PrMGivenD,fill=Model)) +
+#   geom_bar(stat='identity') + 
+#   ggtitle("BMA.aic Posterior Probability, Beta_L.Cases=0.03") + 
+#   #scale_x_discrete(limits=unique(round(dat.power.aic$Sigma.1,3))) +  
+#   #scale_x_discrete(limits=1:10) + 
+#   scale_x_discrete(limits=sig) +
+#   scale_fill_brewer(palette="Paired") +
+#   theme_minimal()
+# grid.arrange(p3, p4, ncol=2) 
+# dev.off()
+# 
+# #All 4 grid plots
+# pdf(paste("C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/11.17.2016/",t,"_ALL_Variance.pdf"),width=15)
+# grid.arrange(p1,p2,p3,p4,ncol=2)
+# dev.off()
 
 
  #Plot Results (Old)
- pdf(paste("C:/Users/Lilith Moss/Documents/MATH/RESEARCH/Admixture_Project/Simulation_Results/11.17.2016/",t,"_Results_Fine.pdf"),width=12)
+ pdf(paste(output_path,t,"_Result_Curves_Fine.pdf"),width=12)
  plot(OverallResults$BMA.cf.power~OverallResults$beta.L.cases,
       type="o",pch=".", col="red",lwd=1.8,
       main = expression(paste(beta,"_L(controls) = ", beta,"_Q(controls) = ",
